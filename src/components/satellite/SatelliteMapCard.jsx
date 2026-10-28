@@ -12,6 +12,7 @@ export default function SatelliteMapCard({
   icon: Icon,
   badgeText,
   onExpand,
+  children,
 }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [enhanceLayer, setEnhanceLayer] = useState(false);
@@ -32,7 +33,7 @@ export default function SatelliteMapCard({
 
       <div
         className="viewer-viewport"
-        style={{ aspectRatio, position: 'relative' }}
+        style={{ aspectRatio, position: 'relative', overflow: 'hidden' }}
       >
         <img
           src={imageSrc}
@@ -46,6 +47,9 @@ export default function SatelliteMapCard({
             objectFit: 'cover',
           }}
         />
+
+        {/* Custom Overlay (e.g. FeatureLabelOverlay) */}
+        {children}
 
         {/* Map tools overlay */}
         <MapControlsOverlay

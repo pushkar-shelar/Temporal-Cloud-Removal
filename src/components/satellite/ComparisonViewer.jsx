@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import MapControlsOverlay from './MapControlsOverlay';
+import FeatureLabelOverlay from './FeatureLabelOverlay';
 
 export default function ComparisonViewer({
   beforeImage,
@@ -17,6 +18,8 @@ export default function ComparisonViewer({
   zoomable = true,
   overlayMaskOutline = false,
   overlayConfidenceHeatmap = false,
+  overlayFeatureLabels = false,
+  featuresData = null,
   maskImage = null,
   confidenceImage = null,
 }) {
@@ -99,6 +102,14 @@ export default function ComparisonViewer({
             }}
           />
         )}
+        {overlayFeatureLabels && (
+          <FeatureLabelOverlay
+            features={featuresData || undefined}
+            interactive={true}
+            showPolygons={true}
+            showPins={true}
+          />
+        )}
       </div>
 
       {/* Foreground (Before / Cloudy) clipped by slider */}
@@ -138,109 +149,77 @@ export default function ComparisonViewer({
           {/* Cloud boundary 1 */}
           <path
             d="M 120,60 C 180,30 320,40 400,90 C 480,140 520,240 450,300 C 380,360 220,380 140,320 C 70,260 60,100 120,60 Z"
-            fill="rgba(56, 189, 248, 0.08)"
-            stroke="#38bdf8"
+            fill="none"
+            stroke="#ef4444"
             strokeWidth="2.5"
             strokeDasharray="6,4"
+            style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.8))' }}
           />
           {/* Cloud boundary 2 */}
           <path
-            d="M 520,120 C 620,80 780,100 860,160 C 930,220 940,320 860,380 C 780,440 640,410 580,350 C 510,290 440,160 520,120 Z"
-            fill="rgba(56, 189, 248, 0.08)"
-            stroke="#38bdf8"
+            d="M 600,100 C 680,60 820,70 890,120 C 960,180 970,280 900,340 C 830,400 710,390 640,330 C 580,280 570,160 600,100 Z"
+            fill="none"
+            stroke="#ef4444"
             strokeWidth="2.5"
             strokeDasharray="6,4"
+            style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.8))' }}
           />
-          {/* Cloud shadow boundary */}
+          {/* Semi-transparent cloud fill highlight */}
           <path
-            d="M 430,310 C 490,320 540,370 510,420 C 470,450 390,440 370,400 C 350,350 380,310 430,310 Z"
-            fill="rgba(244, 63, 94, 0.12)"
-            stroke="#f43f5e"
-            strokeWidth="2"
-            strokeDasharray="4,3"
+            d="M 120,60 C 180,30 320,40 400,90 C 480,140 520,240 450,300 C 380,360 220,380 140,320 C 70,260 60,100 120,60 Z"
+            fill="rgba(239, 68, 68, 0.12)"
+          />
+          <path
+            d="M 600,100 C 680,60 820,70 890,120 C 960,180 970,280 900,340 C 830,400 710,390 640,330 C 580,280 570,160 600,100 Z"
+            fill="rgba(239, 68, 68, 0.12)"
           />
         </svg>
       )}
 
-      {/* Labels */}
-      {beforeLabel && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '12px',
-            left: '12px',
-            background: 'rgba(8, 24, 39, 0.85)',
-            backdropFilter: 'blur(4px)',
-            color: '#ffffff',
-            padding: '4px 10px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: 600,
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            zIndex: 15,
-            pointerEvents: 'none',
-          }}
-        >
-          {beforeLabel}
+      {/* Floating divider line and draggable handle */}
+      <div
+        className="comparison-slider-handle"
+        style={{
+          left: `${sliderPos}%`,
+          pointerEvents: interactive ? 'auto' : 'none',
+        }}
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
+      >
+        <div className="slider-pill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
         </div>
-      )}
+      </div>
 
-      {afterLabel && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '12px',
-            right: '12px',
-            background: 'rgba(8, 24, 39, 0.85)',
-            backdropFilter: 'blur(4px)',
-            color: '#ffffff',
-            padding: '4px 10px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: 600,
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            zIndex: 15,
-            pointerEvents: 'none',
-          }}
-        >
-          {afterLabel}
-        </div>
-      )}
+      {/* Before / After Floating Badges */}
+      <div className="comparison-badge-left">
+        <span className="badge-dot" style={{ backgroundColor: '#ef4444' }} />
+        <span>{beforeLabel}</span>
+      </div>
 
-      {/* Map tools overlay */}
+      <div className="comparison-badge-right">
+        <span className="badge-dot" style={{ backgroundColor: '#16a34a' }} />
+        <span>{afterLabel}</span>
+      </div>
+
+      {/* Floating Map Controls Overlay (Zoom In, Zoom Out, Reset, Fullscreen) */}
       {zoomable && (
-        <div style={{ position: 'absolute', top: '48px', left: '12px', zIndex: 22 }}>
-          <MapControlsOverlay
-            onZoomIn={() => setZoomLevel((z) => Math.min(z + 0.25, 2.5))}
-            onZoomOut={() => setZoomLevel((z) => Math.max(z - 0.25, 1))}
-            onReset={() => {
-              setZoomLevel(1);
-              setSliderPos(50);
-            }}
-            onLayers={() => setSliderPos((p) => (p > 50 ? 0 : 100))}
-          />
-        </div>
+        <MapControlsOverlay
+          onZoomIn={() => setZoomLevel((z) => Math.min(z + 0.25, 2.5))}
+          onZoomOut={() => setZoomLevel((z) => Math.max(z - 0.25, 1))}
+          onReset={() => {
+            setZoomLevel(1);
+            setSliderPos(initialSliderPos);
+          }}
+        />
       )}
 
-      {/* Divider line & Circular Handle */}
-      {interactive && (
-        <>
-          <div
-            className="comparison-divider-line"
-            style={{ left: `${sliderPos}%` }}
-          />
-          <div
-            className="comparison-handle"
-            style={{ left: `${sliderPos}%` }}
-            onMouseDown={onMouseDown}
-            onTouchStart={onTouchStart}
-          >
-            <span>&lt;&nbsp;&gt;</span>
-          </div>
-        </>
-      )}
-
-      {/* Scale Badge */}
+      {/* Scale Indicator Badge */}
       {showScale && (
         <div className="map-scale-badge">
           <div style={{ width: '16px', height: '2px', background: '#a8f04a' }}></div>

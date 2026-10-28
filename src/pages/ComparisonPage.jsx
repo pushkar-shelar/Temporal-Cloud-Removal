@@ -13,6 +13,7 @@ import {
   Info,
 } from 'lucide-react';
 import ComparisonViewer from '../components/satellite/ComparisonViewer';
+import FeatureLabelOverlay from '../components/satellite/FeatureLabelOverlay';
 import SpectralChart from '../components/analytics/SpectralChart';
 import { SATELLITE_ASSETS, PRIMARY_SCENE_INFO } from '../data/mockData';
 
@@ -25,6 +26,7 @@ export default function ComparisonPage({ onNavigate }) {
   const [toastMessage, setToastMessage] = useState(null);
   const [overlayMaskOutline, setOverlayMaskOutline] = useState(false);
   const [overlayConfidenceHeatmap, setOverlayConfidenceHeatmap] = useState(false);
+  const [overlayFeatureLabels, setOverlayFeatureLabels] = useState(true);
   const [isEvaluationMode, setIsEvaluationMode] = useState(false);
 
   const showToast = (title, desc) => {
@@ -207,6 +209,23 @@ export default function ComparisonPage({ onNavigate }) {
             >
               Confidence Heatmap
             </button>
+            <button
+              id="toggle-feature-labels"
+              onClick={() => setOverlayFeatureLabels(!overlayFeatureLabels)}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontWeight: 600,
+                border: overlayFeatureLabels ? '1px solid #7c3aed' : '1px solid #cbd5e1',
+                background: overlayFeatureLabels ? '#f5f3ff' : '#ffffff',
+                color: overlayFeatureLabels ? '#6d28d9' : '#475569',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              🏷️ Labels & Contours
+            </button>
           </div>
 
           {/* View Mode Buttons */}
@@ -339,6 +358,7 @@ export default function ComparisonPage({ onNavigate }) {
                 height="480px"
                 overlayMaskOutline={overlayMaskOutline}
                 overlayConfidenceHeatmap={overlayConfidenceHeatmap}
+                overlayFeatureLabels={overlayFeatureLabels}
                 maskImage={SATELLITE_ASSETS.mask}
                 confidenceImage={SATELLITE_ASSETS.confidence}
               />
@@ -352,6 +372,7 @@ export default function ComparisonPage({ onNavigate }) {
                 </div>
                 <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '6px' }}>
                   <img src={getAfterImage()} alt="After" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {overlayFeatureLabels && <FeatureLabelOverlay interactive={true} />}
                   <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(8,24,39,0.85)', color: '#fff', fontSize: '11px', padding: '3px 8px', borderRadius: '4px' }}>
                     Reconstructed (Cloud-Free)
                   </div>

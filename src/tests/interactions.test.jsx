@@ -256,4 +256,35 @@ describe('Zero-Dead-Interaction Frontend Audit Tests', () => {
       });
     });
   });
+
+  describe('Geographic Feature Labeling Studio (Post-Removal)', () => {
+    it('renders landmark inventory and filters by category', async () => {
+      const { default: LulcAnalysisPage } = await import('../pages/LulcAnalysisPage');
+      render(<LulcAnalysisPage onNavigate={vi.fn()} />);
+
+      // Verify studio title is present
+      expect(screen.getByText(/Post-Removal Semantic Feature Labeling & Vectorization Studio/i)).toBeDefined();
+
+      // Check for extracted features
+      expect(screen.getAllByText(/Brahmaputra Main Braided Channel/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Tezpur Urban Settlement Core/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Sub-Himalayan Foothill Ridge/i).length).toBeGreaterThan(0);
+
+      // Filter by Rivers category
+      const riversBtn = screen.getByRole('button', { name: /Rivers/i });
+      fireEvent.click(riversBtn);
+
+      // Verify river feature remains visible
+      expect(screen.getAllByText(/Brahmaputra Main Braided Channel/i).length).toBeGreaterThan(0);
+
+      // Click to inspect feature on map
+      const inspectBtns = screen.getAllByRole('button', { name: /Inspect/i });
+      fireEvent.click(inspectBtns[0]);
+
+      // Feature inspector card displays detail
+      await waitFor(() => {
+        expect(screen.getAllByText(/Export GeoJSON/i).length).toBeGreaterThan(0);
+      });
+    });
+  });
 });

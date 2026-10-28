@@ -36,6 +36,21 @@ def test_unsupported_export_type_allowlist():
     assert response.status_code == 400
     assert "Unsupported export type" in response.json()["detail"]
 
+def test_geojson_export_allowed_and_valid():
+    """
+    Verifies that the new GeoJSON geographic feature labeling export endpoint
+    returns HTTP 200 with a valid FeatureCollection.
+    """
+    response = client.get("/api/v1/export/sample/geojson")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["type"] == "FeatureCollection"
+    assert "features" in data
+    assert len(data["features"]) > 0
+    # Assert features contain expected categories
+    categories = {f["properties"]["category"] for f in data["features"]}
+    assert "river" in categories or "settlement" in categories or "forest" in categories
+
 def test_benchmarks_empty_or_dynamic_state():
     """
     Tests that benchmarks endpoint returns dynamic records or explicit empty state.

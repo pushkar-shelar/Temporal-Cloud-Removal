@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import uuid
 import shutil
 import threading
@@ -131,7 +132,7 @@ def _execute_job_worker(job_id: str):
                 im_recon = im_fcc
 
             # Stage 5: Masked scientific evaluation & LULC analysis
-            update_stage("5/6: Calculating cloud-region metrics and LULC gain", 85)
+            update_stage("5/6: Calculating cloud-region metrics and LULC feature labeling", 85)
             time.sleep(0.4)
             eval_metrics = evaluate_reconstruction(
                 pred_img=im_recon,
@@ -140,16 +141,22 @@ def _execute_job_worker(job_id: str):
                 confidence_arr=conf_raw,
                 is_synthetic=False
             )
-            lulc_res = run_lulc_classification(im_recon, im_clear, im_mask)
+            lulc_res = run_lulc_classification(im_recon, im_clear, im_mask, confidence_arr=conf_raw)
 
-            # Stage 6: Persist output GeoTIFFs and artifacts
-            update_stage("6/6: Persisting artifacts and manifest", 95)
+            # Stage 6: Persist output GeoTIFFs, vector GeoJSON, and artifacts
+            update_stage("6/6: Persisting artifacts, GeoJSON features, and manifest", 95)
             job_out_dir.mkdir(parents=True, exist_ok=True)
 
             recon_out_path = job_out_dir / f"{job_id}_reconstructed_{spectral_mode.lower()}.tif"
             mask_out_path = job_out_dir / f"{job_id}_cloud_mask.png"
+            geojson_out_path = job_out_dir / f"{job_id}_features.geojson"
+
             im_recon.save(recon_out_path)
             im_mask.save(mask_out_path)
+
+            # Write GeoJSON features
+            with open(geojson_out_path, "w", encoding="utf-8") as gf:
+                json.dump(lulc_res.get("geojson", {}), gf, indent=2)
 
             conf_out_path = None
             if im_conf is not None:
@@ -174,12 +181,16 @@ def _execute_job_worker(job_id: str):
                 "valid_pixels": eval_metrics["overall"]["valid_pixels_count"],
                 "clear_pixels_unchanged": eval_metrics["clear_pixels_unchanged_asserted"],
                 "lulc_gain_pct": lulc_res["metrics"]["accuracy_gain_pct"],
+                "total_features_detected": lulc_res.get("total_features_detected", 0),
                 "calibration_ece": eval_metrics.get("calibration", {}).get("expected_calibration_error") if eval_metrics.get("calibration") else None
             }
             job["results"] = {
                 "reconstructed_geotiff": str(recon_out_path),
                 "confidence_geotiff": conf_out_path,
                 "cloud_shadow_mask": str(mask_out_path),
+                "features_geojson": str(geojson_out_path),
+                "features": lulc_res.get("features", []),
+                "total_features_detected": lulc_res.get("total_features_detected", 0),
                 "temporal_reference": str(PUBLIC_IMAGES_DIR / "satellite-temporal-demo.jpg"),
                 "sar_guidance": str(PUBLIC_IMAGES_DIR / "satellite-sar-demo.jpg"),
                 "lulc_map": str(PUBLIC_IMAGES_DIR / "lulc-reconstructed-demo.png"),
@@ -190,6 +201,7 @@ def _execute_job_worker(job_id: str):
                 "checkpoint": MODEL_REGISTRY.get(model_id, {}).get("checkpoint", "cloudless_model_d.pt"),
                 "crs": "EPSG:32646 (Auto-detected)",
                 "resolution": "5.0m GSD",
+                "features_extracted_count": lulc_res.get("total_features_detected", 0),
                 "evaluation_metrics": eval_metrics,
                 "detector_meta": detector_meta,
                 "git_commit": "c2b489a7"
@@ -209,4 +221,3 @@ def _execute_job_worker(job_id: str):
                 "duration_seconds": round(time.time() - start_time, 2)
             }
             save_job(job)
-

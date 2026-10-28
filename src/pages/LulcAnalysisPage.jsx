@@ -13,6 +13,8 @@ import {
   Filter,
 } from 'lucide-react';
 import SatelliteMapCard from '../components/satellite/SatelliteMapCard';
+import FeatureLabelOverlay from '../components/satellite/FeatureLabelOverlay';
+import { GEOGRAPHIC_FEATURES_DATA, LANDMARK_CATEGORIES } from '../data/mockData';
 import LulcBarChart from '../components/analytics/LulcBarChart';
 import ConfusionMatrix from '../components/analytics/ConfusionMatrix';
 import { SATELLITE_ASSETS, LULC_CLASSES, PRIMARY_SCENE_INFO } from '../data/mockData';
@@ -148,7 +150,11 @@ export default function LulcAnalysisPage({ onNavigate }) {
   const [analysisType, setAnalysisType] = useState('Original vs Reconstructed');
   const [roiEnabled, setRoiEnabled] = useState(true);
   const [roiTool, setRoiTool] = useState('Polygon');
-  const [previewClass, setPreviewClass] = useState('agriculture');
+    const [previewClass, setPreviewClass] = useState('agriculture');
+  const [activeFeatureCat, setActiveFeatureCat] = useState('all');
+  const [selectedFeature, setSelectedFeature] = useState(null);
+  const [showFeaturePolygons, setShowFeaturePolygons] = useState(true);
+  const [showFeaturePins, setShowFeaturePins] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
 
   const [analysisResult, setAnalysisResult] = useState(null);
@@ -444,6 +450,338 @@ export default function LulcAnalysisPage({ onNavigate }) {
                 <span style={{ color: '#334155', fontWeight: 500 }}>{cls.name}</span>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      
+      {/* Interactive Post-Removal Semantic Feature Labeling Studio */}
+      <div className="card" style={{ marginBottom: '20px', border: '1px solid #e2e8f0' }}>
+        <div
+          className="card-header"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            background: 'linear-gradient(to right, #f8fafc, #f1f5f9)',
+            borderBottom: '1px solid #e2e8f0',
+            padding: '12px 18px',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#16a34a',
+                  display: 'inline-block',
+                }}
+              />
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                Post-Removal Semantic Feature Labeling & Vectorization Studio
+              </span>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  background: '#dcfce7',
+                  color: '#15803d',
+                }}
+              >
+                11 Features Extracted
+              </span>
+            </div>
+            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+              Identifies, vectors, and attributes rivers, settlements, dense forest canopies, mountain ridges, and croplands recovered from cloud cover.
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* View toggles */}
+            <button
+              onClick={() => setShowFeaturePolygons(!showFeaturePolygons)}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 600,
+                border: showFeaturePolygons ? '1px solid #16a34a' : '1px solid #cbd5e1',
+                background: showFeaturePolygons ? '#f0fdf4' : '#ffffff',
+                color: showFeaturePolygons ? '#15803d' : '#475569',
+                cursor: 'pointer',
+              }}
+            >
+              {showFeaturePolygons ? '✓ Contours' : 'Contours'}
+            </button>
+            <button
+              onClick={() => setShowFeaturePins(!showFeaturePins)}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 600,
+                border: showFeaturePins ? '1px solid #2563eb' : '1px solid #cbd5e1',
+                background: showFeaturePins ? '#eff6ff' : '#ffffff',
+                color: showFeaturePins ? '#1d4ed8' : '#475569',
+                cursor: 'pointer',
+              }}
+            >
+              {showFeaturePins ? '✓ Pins & Badges' : 'Pins & Badges'}
+            </button>
+            <a
+              href="/api/v1/export/sample/geojson"
+              download="Brahmaputra_Features.geojson"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 600,
+                background: '#0f172a',
+                color: '#ffffff',
+                textDecoration: 'none',
+              }}
+            >
+              <Download size={12} />
+              Export GeoJSON
+            </a>
+          </div>
+        </div>
+
+        {/* Category Filters Bar */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 18px',
+            background: '#ffffff',
+            borderBottom: '1px solid #f1f5f9',
+            overflowX: 'auto',
+          }}
+        >
+          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginRight: '4px' }}>
+            Filter Category:
+          </span>
+          {[
+            { id: 'all', label: 'All Landmarks', count: 11, icon: '📍' },
+            { id: 'river', label: 'Rivers', count: 2, icon: '🌊' },
+            { id: 'settlement', label: 'Settlements', count: 2, icon: '🏘️' },
+            { id: 'forest', label: 'Dense Forests', count: 2, icon: '🌲' },
+            { id: 'mountain', label: 'Mountains & Ridges', count: 2, icon: '⛰️' },
+            { id: 'agriculture', label: 'Croplands', count: 2, icon: '🌾' },
+            { id: 'wetland', label: 'Wetlands', count: 1, icon: '💧' },
+          ].map((cat) => {
+            const isActive = activeFeatureCat === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveFeatureCat(cat.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 9px',
+                  borderRadius: '16px',
+                  fontSize: '11px',
+                  fontWeight: isActive ? 700 : 500,
+                  border: isActive ? '1px solid #0f172a' : '1px solid #e2e8f0',
+                  background: isActive ? '#0f172a' : '#f8fafc',
+                  color: isActive ? '#ffffff' : '#475569',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.label}</span>
+                <span
+                  style={{
+                    fontSize: '9.5px',
+                    padding: '1px 5px',
+                    borderRadius: '10px',
+                    background: isActive ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
+                    color: isActive ? '#ffffff' : '#64748b',
+                  }}
+                >
+                  {cat.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Map Viewport & Feature Table Layout */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0px' }}>
+          {/* Left: Reconstructed Image with FeatureLabelOverlay */}
+          <div
+            style={{
+              position: 'relative',
+              background: '#070b14',
+              height: '420px',
+              borderRight: '1px solid #e2e8f0',
+              overflow: 'hidden',
+            }}
+          >
+            <img
+              src={DATASET_CONFIG[selectedImage]?.reconstructed || SATELLITE_ASSETS.reconstructed}
+              alt="Reconstructed scene with feature labels"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+
+            {/* Feature Label Overlay */}
+            <FeatureLabelOverlay
+              features={GEOGRAPHIC_FEATURES_DATA}
+              activeCategory={activeFeatureCat}
+              selectedFeatureId={selectedFeature ? selectedFeature.id : null}
+              onSelectFeature={(f) => setSelectedFeature(f)}
+              showPolygons={showFeaturePolygons}
+              showPins={showFeaturePins}
+              interactive={true}
+            />
+
+            <div
+              style={{
+                position: 'absolute',
+                top: '10px',
+                left: '10px',
+                background: 'rgba(15, 23, 42, 0.85)',
+                backdropFilter: 'blur(4px)',
+                color: '#f8fafc',
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '3px 8px',
+                borderRadius: '4px',
+                zIndex: 25,
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              Reconstructed LISS-IV 5m (Labeled Feature Layer)
+            </div>
+          </div>
+
+          {/* Right: Feature Landmark Inventory Table */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: '420px',
+              background: '#ffffff',
+            }}
+          >
+            <div
+              style={{
+                padding: '10px 14px',
+                borderBottom: '1px solid #e2e8f0',
+                background: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>
+                Extracted Landmark Inventory
+              </span>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>
+                Click row to inspect on map
+              </span>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '6px' }}>
+              <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ color: '#64748b', textAlign: 'left', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                    <th style={{ padding: '6px 8px' }}>Landmark Name</th>
+                    <th style={{ padding: '6px 8px' }}>Type</th>
+                    <th style={{ padding: '6px 8px' }}>Area (km²)</th>
+                    <th style={{ padding: '6px 8px' }}>Confidence</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'center' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {GEOGRAPHIC_FEATURES_DATA.filter(
+                    (f) => activeFeatureCat === 'all' || f.category === activeFeatureCat
+                  ).map((f) => {
+                    const isSelected = selectedFeature?.id === f.id;
+                    return (
+                      <tr
+                        key={f.id}
+                        onClick={() => setSelectedFeature(isSelected ? null : f)}
+                        style={{
+                          borderBottom: '1px solid #f1f5f9',
+                          background: isSelected ? '#f0fdf4' : 'transparent',
+                          cursor: 'pointer',
+                          transition: 'background 0.15s ease',
+                        }}
+                      >
+                        <td style={{ padding: '6px 8px', fontWeight: 600, color: isSelected ? '#15803d' : '#1e293b' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span
+                              style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                background: f.color,
+                                flexShrink: 0,
+                              }}
+                            />
+                            <span>{f.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '6px 8px', color: '#475569' }}>
+                          <span
+                            style={{
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: f.bg,
+                              color: f.color,
+                              fontSize: '10px',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {f.categoryLabel}
+                          </span>
+                        </td>
+                        <td style={{ padding: '6px 8px', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                          {f.areaKm2}
+                        </td>
+                        <td style={{ padding: '6px 8px', fontFamily: 'var(--font-mono)' }}>
+                          <span style={{ color: '#16a34a', fontWeight: 600 }}>{f.confidencePct}%</span>
+                        </td>
+                        <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedFeature(isSelected ? null : f);
+                            }}
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '10.5px',
+                              fontWeight: 600,
+                              background: isSelected ? '#16a34a' : '#f1f5f9',
+                              color: isSelected ? '#ffffff' : '#475569',
+                              border: '1px solid #cbd5e1',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isSelected ? 'Viewing' : 'Inspect'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

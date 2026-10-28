@@ -143,6 +143,7 @@ export default function CloudRemovalPage({ onNavigate }) {
     if (type.includes('Mask')) endpoint = 'mask';
     if (type.includes('Report') || type.includes('pdf')) endpoint = 'pdf';
     if (type.includes('Provenance') || type.includes('manifest')) endpoint = 'manifest';
+    if (type.includes('geojson') || type.includes('Features') || type.includes('GeoJSON')) endpoint = 'geojson';
     const targetId = latestJobId || 'JOB_20261020_E4192818';
     window.open(`/api/v1/export/${targetId}/${endpoint}`, '_blank');
   };
@@ -875,6 +876,30 @@ export default function CloudRemovalPage({ onNavigate }) {
                       <Download size={12} color="#2878e5" /> Provenance Manifest (JSON)
                     </span>
                     <span style={{ color: '#2878e5', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
+                      Download
+                    </span>
+                  </div>
+
+                  <div
+                    onClick={() => handleDownload('geojson')}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '11.5px',
+                      padding: '6px 8px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      background: '#f0fdf4',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#dcfce7')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = '#f0fdf4')}
+                    title="Download vectorized geographic features and labeled landmarks (GeoJSON)"
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Download size={12} color="#16a34a" /> Labeled Landmarks & Contours (GeoJSON)
+                    </span>
+                    <span style={{ color: '#16a34a', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
                       Download
                     </span>
                   </div>
